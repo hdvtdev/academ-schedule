@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+group = 'hdvtdev'
+version = '0.0.1'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.11.0'
+    //Telegram API
+    implementation 'org.telegram:telegrambots-longpolling:7.11.0'
+    implementation 'org.telegram:telegrambots-client:7.11.0'
+}
+
