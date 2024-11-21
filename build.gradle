@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     implementation 'com.google.code.gson:gson:2.11.0'
+    implementation files('extralibs/SJTL-1.0.0.jar')
     //Telegram API
     implementation 'org.telegram:telegrambots-longpolling:7.11.0'
     implementation 'org.telegram:telegrambots-client:7.11.0'
