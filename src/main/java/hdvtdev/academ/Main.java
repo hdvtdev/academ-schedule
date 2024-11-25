@@ -1,40 +1,44 @@
 package hdvtdev.academ;
 
 
+import hdvtdev.ExcelScheduleManager;
+import hdvtdev.academ.bots.telegram.AcademTelegramBot;
+import hdvtdev.academ.bots.telegram.Messages;
+import hdvtdev.academ.config.JsonConfigManager;
+import schliph.CommandLineParser;
+
+
+import java.nio.file.Path;
+
 public class Main {
+
+
 
     private static String telegramApiToken;
     private static String discordApiToken;
+    private static String authToken;
+    private static boolean debug;
 
     public static void main(String[] args) {
 
-        if (args.length == 0 || args.length == 1) {
-            if (args[0].equals("--help")) {
-                System.out.println("help");
-            } else System.err.println("Unknown argument");
-            return;
-        }
+        CommandLineParser cmd = new CommandLineParser(args);
+        telegramApiToken = cmd.getAsOptional("--telegramApiToken").orElse("").toString();
+        discordApiToken = cmd.getAsOptional("--discordApiToken").orElse("").toString();
+        authToken = cmd.getAsOptional("--authToken").orElse("").toString();
+        cmd.close();
 
-        if (args.length % 2 != 0) {
-            System.err.println("Usage: <argument> <value>");
-            return;
-        }
+        Messages.setScheduleManagers(new AcademScheduleManager(new ExcelScheduleManager(Path.of("excelSchedule/odd.xlsx"))), new AcademScheduleManager(new ExcelScheduleManager(Path.of("excelSchedule/even.xlsx"))));
 
-        for (int i = 0; i < args.length; i += 2) {
-            switch (args[i]) {
-                case "--telegramApiToken" -> telegramApiToken = args[i + 1];
-                case "--discordApiToken" -> discordApiToken = args[i + 1];
-                default -> System.out.println("Unknown argument: " + args[i] + ", with value " + args[i + 1]);
-            }
-        }
+        AcademTelegramBot academTelegramBot = new AcademTelegramBot(telegramApiToken)
+                .addAuthToken(authToken)
+                .runImmediately();
 
+        System.out.println("Bot started");
 
 
 
 
     }
-
-
 
 
 }
