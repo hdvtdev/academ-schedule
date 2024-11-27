@@ -3,10 +3,12 @@ package hdvtdev.academ.bots.telegram;
 import hdvtdev.*;
 import hdvtdev.academ.AcademScheduleManager;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 
 import java.time.DayOfWeek;
@@ -66,15 +68,158 @@ public class Messages {
                     AcademTelegramBot.sendMessage(chatId, "Введите номер группы, например 216ис23");
                 }
             }
+            default -> {
+                System.out.println("default: " + callbackData);
+                System.out.println("msg id: " + update.getCallbackQuery().getMessage().getMessageId());
+                if (callbackData.startsWith("previous")) {
+                    System.out.println("previous");
+                    String weekType = callbackData.split("_")[1];
+                    String chosenDayOfWeek = callbackData.split("_")[2];
+                    String group = callbackData.split("_")[3];
+                    DayOfWeek dayOfWeek = null;
+                    switch (chosenDayOfWeek) {
+                        case "monday" -> {
+                            dayOfWeek = DayOfWeek.SATURDAY;
+                            chosenDayOfWeek = "saturday";
+                        }
+                        case "tuesday" -> {
+                            dayOfWeek = DayOfWeek.MONDAY;
+                            chosenDayOfWeek = "monday";
+                        }
+                        case "wednesday" -> {
+                            dayOfWeek = DayOfWeek.TUESDAY;
+                            chosenDayOfWeek = "tuesday";
+                        }
+                        case "thursday" -> {
+                            dayOfWeek = DayOfWeek.WEDNESDAY;
+                            chosenDayOfWeek = "wednesday";
+                        }
+                        case "friday" -> {
+                            dayOfWeek = DayOfWeek.THURSDAY;
+                            chosenDayOfWeek = "thursday";
+                        }
+                        case "saturday" -> {
+                            dayOfWeek = DayOfWeek.FRIDAY;
+                            chosenDayOfWeek = "friday";
+                        }
+                    }
+                    try {
+                        AcademTelegramBot.telegramClient.execute(editGroupSchedule(chatId, group, weekType, dayOfWeek, chosenDayOfWeek, update.getCallbackQuery().getMessage().getMessageId()));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                if (callbackData.startsWith("next")) {
+                    System.out.println("next");
+                    String weekType = callbackData.split("_")[1];
+                    String chosenDayOfWeek = callbackData.split("_")[2];
+                    String group = callbackData.split("_")[3];
+                    DayOfWeek dayOfWeek = null;
+                    switch (chosenDayOfWeek) {
+                        case "monday" -> {
+                            dayOfWeek = DayOfWeek.TUESDAY;
+                            chosenDayOfWeek = "tuesday";
+                        }
+                        case "tuesday" -> {
+                            dayOfWeek = DayOfWeek.WEDNESDAY;
+                            chosenDayOfWeek = "wednesday";
+                        }
+                        case "wednesday" -> {
+                            dayOfWeek = DayOfWeek.THURSDAY;
+                            chosenDayOfWeek = "thursday";
+                        }
+                        case "thursday" -> {
+                            dayOfWeek = DayOfWeek.FRIDAY;
+                            chosenDayOfWeek = "friday";
+                        }
+                        case "friday" -> {
+                            dayOfWeek = DayOfWeek.SATURDAY;
+                            chosenDayOfWeek = "saturday";
+                        }
+                        case "saturday" -> {
+                            dayOfWeek = DayOfWeek.MONDAY;
+                            chosenDayOfWeek = "monday";
+                        }
+                    }
+                    try {
+                        AcademTelegramBot.telegramClient.execute(editGroupSchedule(chatId, group, weekType, dayOfWeek, chosenDayOfWeek, update.getCallbackQuery().getMessage().getMessageId()));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
         }
 
     }
 
+    public static EditMessageText editGroupSchedule(Long chatId, String group, String wkType, DayOfWeek dayOfWeek, String chosenDayOfWeek, Integer messageId) {
+
+        AcademScheduleManager scheduleManager = WeekType.fromValue(wkType).equals(WeekType.ODD) ? oddScheduleManager : evenScheduleManager;
+
+        group = scheduleManager.findMostSimilarString(group);
+        WeeklySchedule weeklySchedule = scheduleManager.getWeeklySchedule(group);
+        String weekType = WeekType.fromValue(wkType).equals(WeekType.ODD) ? "Нечётная, " : "Чётная, ";
+        String dayOfWeekRus = switch (dayOfWeek) {
+            case MONDAY -> "Понедельник, ";
+            case TUESDAY -> "Вторник, ";
+            case WEDNESDAY -> "Среда, ";
+            case THURSDAY -> "Четверг, ";
+            case FRIDAY -> "Пятница, ";
+            case SATURDAY -> "Суббота, ";
+            default -> "";
+        };
+        DailySchedule dailySchedule = new DailySchedule(null, null);
+        for (DailySchedule schedule : weeklySchedule.dailySchedules()) {
+            if (schedule.dayOfWeek().equals(dayOfWeek)) {
+                dailySchedule = schedule;
+                break;
+            }
+        }
+
+
+        List<InlineKeyboardButton> classes = new ArrayList<>();
+        int index = 1;
+        for (ClassData classData : dailySchedule.classData()) {
+            InlineKeyboardButton button;
+            if (classData != null) {
+                button = new InlineKeyboardButton(index + ". " + classData.className() + ", " + classData.teacher() + ", " + classData.classRoom());
+            } else {
+                button = new InlineKeyboardButton(index + ". Нет пары");
+            }
+            button.setCallbackData("null");
+            classes.add(button);
+            index++;
+        }
+
+        List<InlineKeyboardRow> rows = new ArrayList<>();
+        classes.forEach(button -> rows.add(new InlineKeyboardRow(button)));
+        InlineKeyboardButton previous = new InlineKeyboardButton("⬅️");
+        previous.setCallbackData("previous_" + wkType + "_" + chosenDayOfWeek + "_" + group);
+
+        InlineKeyboardButton next = new InlineKeyboardButton("➡️");
+        next.setCallbackData("next_" + wkType + "_" + chosenDayOfWeek + "_" + group);
+
+        rows.add(new InlineKeyboardRow(previous, next));
+        InlineKeyboardMarkup replyMarkup = new InlineKeyboardMarkup(rows);
+
+        EditMessageText editMessage = new EditMessageText(weekType + dayOfWeekRus + weeklySchedule.id());
+        editMessage.setChatId(chatId.toString());
+        editMessage.setMessageId(messageId);
+        editMessage.setReplyMarkup(replyMarkup);
+
+        UserStateHandler.setDefaultUserState(chatId);
+
+        return editMessage;
+    }
+
     public static SendMessage sendGroupSchedule(Long chatId, String group) {
 
-        AcademScheduleManager scheduleManager = WeekType.fromValue(UserChoiceStorage.getUserChoice(chatId).getWeekType()).equals(WeekType.ODD) ? oddScheduleManager : evenScheduleManager;
+        String wkType = UserChoiceStorage.getUserChoice(chatId).getWeekType();
+        AcademScheduleManager scheduleManager = WeekType.fromValue(wkType).equals(WeekType.ODD) ? oddScheduleManager : evenScheduleManager;
         DayOfWeek dayOfWeek = DayOfWeek.MONDAY;
-        switch (UserChoiceStorage.getUserChoice(chatId).getDayOfWeek()) {
+        String chosenDayOfWeek = UserChoiceStorage.getUserChoice(chatId).getDayOfWeek();
+        switch (chosenDayOfWeek) {
             case "tuesday" -> dayOfWeek = DayOfWeek.TUESDAY;
             case "wednesday" -> dayOfWeek = DayOfWeek.WEDNESDAY;
             case "thursday" -> dayOfWeek = DayOfWeek.THURSDAY;
@@ -83,7 +228,7 @@ public class Messages {
         }
         group = scheduleManager.findMostSimilarString(group);
         WeeklySchedule weeklySchedule = scheduleManager.getWeeklySchedule(group);
-        String weekType = WeekType.of(0).equals(WeekType.ODD) ? "Нечётная, " : "Чётная, ";
+        String weekType = WeekType.fromValue(UserChoiceStorage.getUserChoice(chatId).getWeekType()).equals(WeekType.ODD) ? "Нечётная, " : "Чётная, ";
         String dayOfWeekRus = "";
         switch (dayOfWeek) {
             case MONDAY -> dayOfWeekRus = "Понедельник, ";
@@ -107,25 +252,30 @@ public class Messages {
 
         int index = 1;
         for (ClassData classData : dailySchedule.classData()) {
+            InlineKeyboardButton button;
             if (classData != null) {
-                InlineKeyboardButton button = new InlineKeyboardButton("Пара " + index + ": " + classData.className() + ", " + classData.teacher() + ", " + classData.classRoom());
-                button.setCallbackData("null");
-                classes.add(button);
+                button = new InlineKeyboardButton(index + ". " + classData.className() + ", " + classData.teacher() + ", " + classData.classRoom());
             } else {
-                InlineKeyboardButton button = new InlineKeyboardButton("Пара " + index + ": Нет пары");
-                button.setCallbackData("null");
-                classes.add(button);
+                button = new InlineKeyboardButton(index + ". Нет пары");
             }
+            button.setCallbackData("null");
+            classes.add(button);
             index++;
         }
 
         List<InlineKeyboardRow> rows = new ArrayList<>();
 
         classes.forEach(button -> rows.add(new InlineKeyboardRow(button)));
+        InlineKeyboardButton previous = new InlineKeyboardButton("⬅️");
+        previous.setCallbackData("previous_" + wkType + "_" + chosenDayOfWeek + "_" + group);
 
+        InlineKeyboardButton next = new InlineKeyboardButton("➡️");
+        next.setCallbackData("next_" + wkType + "_" + chosenDayOfWeek + "_" + group);
+
+        rows.addLast(new InlineKeyboardRow(previous, next));
         sendMessage.setReplyMarkup(new InlineKeyboardMarkup(rows));
 
-        UserStateHandler.setUserState(chatId, UserState.DEFAULT);
+        UserStateHandler.setDefaultUserState(chatId);
 
         return sendMessage;
     }

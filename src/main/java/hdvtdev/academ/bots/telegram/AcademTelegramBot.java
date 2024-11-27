@@ -8,8 +8,15 @@ import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -18,16 +25,16 @@ import java.util.concurrent.Executors;
 
 public class AcademTelegramBot implements LongPollingSingleThreadUpdateConsumer {
 
-    private final String token;
+    protected static String token;
     private String authToken = null;
     private boolean insecure = false;
-    private static TelegramClient telegramClient;
+    protected static TelegramClient telegramClient;
     private TelegramBotsLongPollingApplication botsApplication;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     public AcademTelegramBot(String token) {
         telegramClient = new OkHttpTelegramClient(token);
-        this.token = token;
+        AcademTelegramBot.token = token;
     }
 
     public AcademTelegramBot runImmediately() {
@@ -74,23 +81,33 @@ public class AcademTelegramBot implements LongPollingSingleThreadUpdateConsumer 
         }
 
         if (update.hasCallbackQuery()) {
+
             Messages.submitCallbackQueryEvent(update);
         }
 
         if (update.hasMessage() && update.getMessage().hasText() && UserStateHandler.getUserState(update.getMessage().getChatId()).equals(UserState.SELECTING_GROUP)) {
-           sendMessage(Messages.sendGroupSchedule(update.getMessage().getChatId(), update.getMessage().getText()));
+            String group = update.getMessage().getText();
+            UserChoiceStorage.getUserChoice(update.getMessage().getChatId()).setGroup(group);
+            sendMessage(Messages.sendGroupSchedule(update.getMessage().getChatId(), group));
         }
 
-        if (update.hasMessage() && update.getMessage().hasText() && update.getMessage().getText().startsWith(":")) {
-            if (insecure) {
-                sendMessage(update.getMessage().getChatId(), "Bot currently in insecure mode.");
-            } else {
-                Debug.submitDebugCommand(update, authToken);
+
+        try {
+            if (!update.hasCallbackQuery() && update.hasMessage() && (update.getMessage().hasText() && update.getMessage().getText().startsWith(":")) || (update.getMessage().hasCaption() && update.getMessage().getCaption().startsWith(":"))) {
+                if (insecure) {
+                    sendMessage(update.getMessage().getChatId(), "Bot currently in insecure mode.");
+                } else {
+                    Debug.submitDebugCommand(update, authToken);
+                }
             }
+        } catch (NullPointerException e) {
+            System.out.println("Разраб библы долбаеб");
         }
 
 
     }
+
+
 
 
     public static void sendMessage(Long chatId, String text) {
@@ -108,6 +125,15 @@ public class AcademTelegramBot implements LongPollingSingleThreadUpdateConsumer 
             telegramClient.execute(message);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public Message sendMessageAndGetId(SendMessage message) {
+        try {
+            return telegramClient.execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 

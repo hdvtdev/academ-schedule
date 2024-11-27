@@ -14,8 +14,9 @@ dependencies {
     implementation 'com.warrenstrange:googleauth:1.4.0'
     implementation 'org.slf4j:slf4j-nop:2.0.12'
     //implementation files('extralibs/SJTL-1.0.0.jar')
-    implementation files('localLibraries/POI.jar')
+
     implementation files('localLibraries/schliph-1.0.1.jar')
+    implementation files('localLibraries/POI.jar')
 
     //Telegram API
     implementation 'org.telegram:telegrambots-longpolling:7.11.0'

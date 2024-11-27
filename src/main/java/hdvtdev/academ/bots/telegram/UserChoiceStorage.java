@@ -4,8 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Deprecated(
-        since = "0.0.2",
-        forRemoval = true
+        since = "0.0.2"
 )
 public class UserChoiceStorage {
 
@@ -22,11 +21,12 @@ public class UserChoiceStorage {
 }
 
 @Deprecated(
-        since = "0.0.2",
-        forRemoval = true
+        since = "0.0.2"
 )
  class UserChoice {
 
+    private String group;
+    private String messageId;
     private String weekType;
     private String dayOfWeek;
 
@@ -48,5 +48,19 @@ public class UserChoiceStorage {
         this.dayOfWeek = dayOfWeek;
     }
 
+    public String getGroup() {
+        return group;
+    }
 
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
+    }
 }
