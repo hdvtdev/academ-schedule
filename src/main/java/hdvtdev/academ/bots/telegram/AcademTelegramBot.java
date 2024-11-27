@@ -12,11 +12,6 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -100,8 +95,8 @@ public class AcademTelegramBot implements LongPollingSingleThreadUpdateConsumer 
                     Debug.submitDebugCommand(update, authToken);
                 }
             }
-        } catch (NullPointerException e) {
-            System.out.println("Разраб библы долбаеб");
+        } catch (NullPointerException ignored) {
+
         }
 
 
